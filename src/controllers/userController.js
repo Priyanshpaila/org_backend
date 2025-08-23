@@ -102,17 +102,120 @@ export const getSubtree = asyncHandler(async (req, res) => {
   res.json(list);
 });
 
-// Sort users by designation priority (for main tree siblings order)
+// --- helper: sort by designation priority then name
+function sortByDesignationPriority(designationMap) {
+  return (a, b) => {
+    const pa = designationMap.get(String(a.designation?._id)) ?? 999;
+    const pb = designationMap.get(String(b.designation?._id)) ?? 999;
+    if (pa !== pb) return pa - pb;
+    return (a.name || "").localeCompare(b.name || "");
+  };
+}
+
 export const roots = asyncHandler(async (req, res) => {
-  const tops = await User.find({ isDeleted: false, $or: [{ reportingTo: { $size: 0 } }, { reportingTo: { $exists: false } }] })
-    .populate("designation department division", "name priority")
+  const includeMy =
+    String(req.query.includeMyReports || "").toLowerCase() === "1" ||
+    String(req.query.includeMyReports || "").toLowerCase() === "true";
+
+  const wantFull =
+    String(req.query.full || "").toLowerCase() === "1" ||
+    String(req.query.full || "").toLowerCase() === "true";
+
+  // at least depth 6 by default
+  const depthCap = Number(req.query.depth) > 0 ? Number(req.query.depth) : 6;
+
+  const userId = req.user?.id;
+
+  const [topNodes, designations, myReportsRaw] = await Promise.all([
+    // Top-level users (no managers)
+    User.find({
+      isDeleted: false,
+      $or: [{ reportingTo: { $size: 0 } }, { reportingTo: { $exists: false } }],
+    })
+      .populate("designation department division", "name priority")
+      .lean(),
+
+    // sort map
+    Designation.find().lean(),
+
+    // Direct reports for the logged-in user (optional)
+    includeMy && userId
+      ? User.find({
+          isDeleted: false,
+          reportingTo: new mongoose.Types.ObjectId(userId),
+        })
+          .populate(
+            "designation department division reportingTo",
+            "name priority empId"
+          )
+          .lean()
+      : Promise.resolve([]),
+  ]);
+
+  const dmap = new Map(designations.map((d) => [String(d._id), d.priority]));
+  const sorter = sortByDesignationPriority(dmap);
+
+  topNodes.sort(sorter);
+  const myReports = (myReportsRaw || []).sort(sorter);
+
+  // If caller doesn't want full forest, keep backward compatibility
+  if (!wantFull) {
+    if (!includeMy) return res.json(topNodes);
+    return res.json({ roots: topNodes, myReports });
+  }
+
+  // Build the "forest" up to depthCap under all top nodes
+  const rootIds = topNodes.map((r) => r._id);
+
+  // Compute min root depth safely (supports fallback to ancestors length)
+  const depthOf = (u) =>
+    typeof u.depth === "number"
+      ? u.depth
+      : Array.isArray(u.ancestors)
+      ? u.ancestors.length
+      : 0;
+
+  const minRootDepth = topNodes.length
+    ? Math.min(...topNodes.map(depthOf))
+    : 0;
+  const maxDepth = minRootDepth + depthCap;
+
+  // Query all nodes that belong to any of the top trees, up to the depth cap
+  // - include the roots themselves
+  // - include anyone whose ancestors contain a root id
+  const forest = await User.find({
+    isDeleted: false,
+    $or: [
+      { _id: { $in: rootIds } },
+      { ancestors: { $in: rootIds } }, // array contains any root id
+    ],
+    // cap by depth; fall back to 0 if missing
+    $expr: {
+      $lte: [
+        { $ifNull: ["$depth", { $size: { $ifNull: ["$ancestors", []] } }] },
+        maxDepth,
+      ],
+    },
+  })
+    .populate(
+      "designation department division reportingTo",
+      "name priority empId"
+    )
     .lean();
 
-  const designations = await Designation.find().lean();
-  const map = new Map(designations.map(d => [String(d._id), d.priority]));
+  // Optional: sort forest by (depth asc), then designation priority, then name
+  forest.sort((a, b) => {
+    const da = depthOf(a);
+    const db = depthOf(b);
+    if (da !== db) return da - db;
+    return sorter(a, b);
+  });
 
-  tops.sort((a, b) => (map.get(String(a.designation?._id)) || 999) - (map.get(String(b.designation?._id)) || 999));
-  res.json(tops);
+  return res.json({
+    roots: topNodes,
+    myReports,
+    tree: forest, // <= use this on the frontend to draw edges
+  });
 });
 
 
@@ -145,19 +248,16 @@ export const changeUserRole = asyncHandler(async (req, res) => {
 export const updateMyProfile = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
-  // whitelist: only allow these fields to be changed by the user
   const { name, phone, email } = req.body;
   const updates = {};
   if (typeof name === "string") updates.name = name;
   if (typeof phone === "string") updates.phone = phone;
   if (typeof email === "string") updates.email = email.toLowerCase();
 
-  // prevent empty body
   if (Object.keys(updates).length === 0) {
     return res.status(400).json({ error: "No updatable fields provided" });
   }
 
-  // enforce unique email/phone if changed
   if (updates.email) {
     const exists = await User.findOne({ _id: { $ne: userId }, email: updates.email }).lean();
     if (exists) return res.status(409).json({ error: "Email already in use" });
@@ -176,4 +276,23 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
 
   if (!updated) return res.status(404).json({ error: "User not found" });
   res.json(updated);
+});
+
+/** OPTIONAL: dedicated endpoint if you want /users/my-reports */
+export const myReports = asyncHandler(async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const [designations, reports] = await Promise.all([
+    Designation.find().lean(),
+    User.find({ isDeleted: false, reportingTo: new mongoose.Types.ObjectId(userId) })
+      .populate("designation department division reportingTo", "name priority empId")
+      .lean()
+  ]);
+
+  const dmap = new Map(designations.map(d => [String(d._id), d.priority]));
+  const sorter = sortByDesignationPriority(dmap);
+  reports.sort(sorter);
+
+  res.json(reports);
 });
