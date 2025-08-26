@@ -45,56 +45,102 @@ export async function generateSnapshotPDF(doc) {
 <style>
   @page { size: A4 landscape; margin: 12mm; }
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; color:#111; }
+  body { font-family: Arial, Helvetica, sans-serif; color:#222; background:#f6f8fb; }
 
-  .sheet { width: 100%; border: 1px solid #cfcfcf; }
+  /* Palette */
+:root{
+  --primary:#4A4A4A;       /* Neutral gray */
+  --primary-dark:#2f2f2f;
+  --accent:#E30613;
+  --ink:#222222;
+  --muted:#777777;
+  --panel:#ffffff;
+  --border:#e0e0e0;
+  --table-border:#ebebeb;
+  --table-head:#f6f6f6;
+  --title-bg:#f3f3f3;
+  --ribbon-wave:#2f2f2f;
+  --final-pill-bg:#fff5f5;
+  --final-pill-text:#B5050F;
+}
+
+  .sheet {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
 
   /* Header ribbon */
-  .ribbon { position: relative; height: 60px; background: #dcdcdc; overflow: hidden; }
+  .ribbon { position: relative; height: 64px; background: var(--navy); color:#fff; overflow: hidden; }
   .ribbon svg { position:absolute; left:0; right:0; bottom:-1px; width:100%; height:16px; }
-  .ribbon-inner { position:absolute; inset:0 0 auto 0; display:flex; align-items:center; justify-content:space-between; padding:0 14px; }
+  .ribbon-inner {
+    position:absolute; inset:0 0 auto 0; display:flex; align-items:center;
+    justify-content:space-between; padding:0 14px;
+  }
   .r-slot { display:flex; align-items:center; gap:10px; }
 
-  /* Left: person photo (bigger, no border) */
+  /* Left: person photo */
   .photo-box {
-    width: 46px; height: 46px; border-radius: 6px; background:#fff;
+    width: 55px; height: 55px; border-radius: 0px; background:#fff;
     overflow:hidden; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 1px 3px rgba(0,0,0,0.15);
   }
   .photo-box img { width:100%; height:100%; object-fit:cover; }
 
-  /* Center: left logo (no border box) */
+  /* Center: left logo */
   .center-badge { display:flex; align-items:center; justify-content:center; }
-  .center-badge img { max-height:38px; max-width:220px; object-fit:contain; }
+  .center-badge img { max-height:58px; max-width:240px; object-fit:contain; }
+  .center-badge strong { font-size:22px; font-weight:700; color:#fff; letter-spacing:.4px; }
 
-  /* Right: RR ISPAT / right logo (no border box) */
+  /* Right: RR ISPAT / right logo */
   .right-logo { display:flex; align-items:center; }
-  .right-logo img { max-height:32px; max-width:180px; object-fit:contain; }
+  .right-logo img { max-height:40px; max-width:180px; object-fit:contain; }
 
-  .title-row { padding: 6px 12px; border-bottom: 1px solid #cfcfcf; }
-  .title { font-size: 20px; font-weight: 700; }
+  .title-row { padding: 8px 14px; border-bottom: 2px solid var(--navy); background:var(--title-bg); }
+  .title { font-size: 22px; font-weight: 700; color:var(--navy); letter-spacing:.2px; }
 
   .grid { display:grid; grid-template-columns: 58% 42%; }
 
   table { width:100%; border-collapse: collapse; table-layout: fixed; }
-  th, td { border: 1px solid #dadada; padding: 6px 8px; vertical-align: top; }
-  th { width: 42%; background:#efefef; text-align:left; font-weight:600; }
+  th, td { border: 1px solid var(--table-border); padding: 7px 9px; vertical-align: top; font-size: 13.5px; }
+  th {
+    width: 42%; background:var(--table-head); text-align:left; font-weight:600; color:var(--navy);
+  }
 
-  .row-name td { height: 38px; }
-  .row-tall td { height: 92px; }
+  .row-name td { height: 40px; font-weight:600; color:var(--ink); }
+  .row-tall td { height: 94px; }
   .row-taller td { height: 140px; }
 
   .r-lg td { height: 145px; }
   .r-md td { height: 100px; }
 
-  .signatures { display:flex; justify-content:space-between; gap: 16px; padding: 8px 8px 6px; }
-  .sig-box { flex:1; height: 58px; border:1px solid #dadada; display:flex; align-items:center; justify-content:center; }
-  .sig-box img { max-height:54px; object-fit:contain; }
-  .sig-labels { display:flex; justify-content:space-between; padding: 2px 8px 8px; color:#333; font-size: 12px; }
+  /* Final decision subtle highlight */
+  .final-decision th { border-left: 4px solid var(--navy); }
+  .final-decision td {
+    background: var(--final-pill-bg);
+    color: var(--final-pill-text);
+    font-weight: 600;
+  }
 
-  .footer { margin-top: 6px; background:#dcdcdc; border-top:1px solid #c0c0c0; padding: 8px 10px;
-            display:flex; justify-content:space-between; align-items:center; font-size: 12px; }
+  .signatures { display:flex; justify-content:space-between; gap: 16px; padding: 10px 10px 8px; }
+  .sig-box {
+    flex:1; height: 60px; border:1px solid var(--border); background:#fafafa;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .sig-box img { max-height:54px; object-fit:contain; }
+  .sig-labels { display:flex; justify-content:space-between; padding: 4px 10px 10px; color:var(--muted); font-size: 12px; }
+
+  .footer {
+    margin-top: 8px; background:var(--navy); color:#000; border-top:3px solid var(--navy-dark);
+    padding: 8px 12px; display:flex; justify-content:space-between; align-items:center; font-size: 12.5px;
+  }
   .bold { font-weight:700; }
-  .note { color:#333; font-style: italic; }
+  .note { color:#000; font-style: italic; }
+
+  /* Small helpers for lists inside cells */
+  .bullets { margin:0; padding-left:16px; }
+  .bullets li { line-height:1.35; margin: 2px 0; }
 </style>
 </head>
 <body>
@@ -114,12 +160,12 @@ export async function generateSnapshotPDF(doc) {
         <!-- RIGHT: RR ISPAT / rightLogo -->
         <div class="r-slot">
           <div class="right-logo">
-            ${rightLogo ? `<img src="${rightLogo}" alt="Right Logo" />` : '<span style="font-weight:700;font-size:12px;">RR ISPAT</span>'}
+            ${rightLogo ? `<img src="${rightLogo}" alt="Right Logo" />` : '<span style="font-weight:700;font-size:13px;color:#fff;">RR ISPAT</span>'}
           </div>
         </div>
       </div>
       <svg viewBox="0 0 100 10" preserveAspectRatio="none">
-        <path d="M0,6 C25,10 75,2 100,6 L100,10 L0,10 Z" fill="#c9c9c9"></path>
+        <path d="M0,6 C25,10 75,2 100,6 L100,10 L0,10 Z" fill="var(--ribbon-wave)"></path>
       </svg>
     </div>
 
@@ -128,30 +174,78 @@ export async function generateSnapshotPDF(doc) {
     <div class="grid">
       <div>
         <table>
-          <tr class="row-name"><th>Name</th><td>${doc.personName || '—'}</td></tr>
-          <tr><th>Designation, Grade</th><td>${[doc.designation || '—', doc.grade || ''].filter(Boolean).join(', ')}</td></tr>
-          <tr><th>Date of Joining</th><td>${ddmmyyyy(doc.dateOfJoining) || '—'}</td></tr>
-          <tr><th>Service Tenure with Organization</th><td>${doc.serviceTenureText || '—'}</td></tr>
-          <tr><th>Date of Birth and<br/>Age (in Years)</th><td>${ddmmyyyy(doc.dateOfBirth) || '—'} ${ageStr ? `&nbsp;&nbsp;(${ageStr})` : ''}</td></tr>
-          <tr><th>Total Exp in domain, &amp; Industry</th><td>${doc.totalExperienceText || '—'}</td></tr>
-          <tr><th>Previous Organization</th><td>${doc.previousOrganization || '—'}</td></tr>
-          <tr><th>Qualification</th><td>${(doc.qualifications || []).join(', ') || '—'}</td></tr>
-          <tr class="row-tall"><th>Major Certification(s)</th><td>${(doc.majorCertifications || []).join(', ') || '—'}</td></tr>
-          <tr class="row-tall"><th>Merit for vertical<br/>movement</th><td>${(doc.meritsForVerticalMovement || []).map(x=>`• ${x}`).join('<br/>') || '—'}</td></tr>
-          <tr class="row-taller"><th>Position Summary</th><td>${doc.positionSummary || '—'}</td></tr>
+          <tr class="row-name">
+            <th>Name</th>
+            <td>${doc.personName || '—'}</td>
+          </tr>
+          <tr>
+            <th>Designation, Grade</th>
+            <td>${[doc.designation || '—', doc.grade || ''].filter(Boolean).join(', ')}</td>
+          </tr>
+          <tr>
+            <th>Date of Joining</th>
+            <td>${ddmmyyyy(doc.dateOfJoining) || '—'}</td>
+          </tr>
+          <tr>
+            <th>Service Tenure with Organization</th>
+            <td>${doc.serviceTenureText || '—'}</td>
+          </tr>
+          <tr>
+            <th>Date of Birth and<br/>Age (in Years)</th>
+            <td>${ddmmyyyy(doc.dateOfBirth) || '—'} ${typeof ageStr !== 'undefined' && ageStr ? `&nbsp;&nbsp;(${ageStr})` : ''}</td>
+          </tr>
+          <tr>
+            <th>Total Exp in domain, &amp; Industry</th>
+            <td>${doc.totalExperienceText || '—'}</td>
+          </tr>
+          <tr>
+            <th>Previous Organization</th>
+            <td>${doc.previousOrganization || '—'}</td>
+          </tr>
+          <tr>
+            <th>Qualification</th>
+            <td>${(doc.qualifications || []).join(', ') || '—'}</td>
+          </tr>
+          <tr class="row-tall">
+            <th>Major Certification(s)</th>
+            <td>${(doc.majorCertifications || []).join(', ') || '—'}</td>
+          </tr>
+          <tr class="row-tall">
+            <th>Merit for vertical<br/>movement</th>
+            <td>
+              ${
+                (doc.meritsForVerticalMovement || []).length
+                  ? `<ul class="bullets">${doc.meritsForVerticalMovement.map(x=>`<li>${x}</li>`).join('')}</ul>`
+                  : '—'
+              }
+            </td>
+          </tr>
+          <tr class="row-taller">
+            <th>Position Summary</th>
+            <td>${doc.positionSummary || '—'}</td>
+          </tr>
         </table>
       </div>
 
       <div>
         <table>
-          <tr class="r-lg"><th>Additional Comments or Note(s) by Head HR</th><td>${doc.additionalCommentsHeadHR || ''}</td></tr>
-          <tr class="r-lg"><th>Comments of Director(s) or MD</th><td>${doc.commentsDirectorsOrMD || ''}</td></tr>
-          <tr class="r-md"><th class="bold">Final Decision taken</th><td>${doc.finalDecisionTaken || ''}</td></tr>
+          <tr class="r-lg">
+            <th>Additional Comments or Note(s) by Head HR</th>
+            <td>${doc.additionalCommentsHeadHR || ''}</td>
+          </tr>
+          <tr class="r-lg">
+            <th>Comments of Director(s) or MD</th>
+            <td>${doc.commentsDirectorsOrMD || ''}</td>
+          </tr>
+          <tr class="r-md final-decision">
+            <th class="bold">Final Decision taken</th>
+            <td>${doc.finalDecisionTaken || ''}</td>
+          </tr>
         </table>
 
         <div class="signatures">
-          <div class="sig-box">${headSig ? `<img src="${headSig}" />` : ''}</div>
-          <div class="sig-box">${dirSig ? `<img src="${dirSig}" />` : ''}</div>
+          <div class="sig-box">${headSig ? `<img src="${headSig}" alt="Head-HR Signature"/>` : ''}</div>
+          <div class="sig-box">${dirSig ? `<img src="${dirSig}" alt="Director/MD Signature"/>` : ''}</div>
         </div>
         <div class="sig-labels">
           <div>Head-HR${doc.headHRName ? ` — ${doc.headHRName}` : ''}</div>
@@ -162,11 +256,12 @@ export async function generateSnapshotPDF(doc) {
 
     <div class="footer">
       <div>Presented by Human Resources on <span class="bold">${presentedStr || '—'}</span></div>
-      <div class="note">for Confidential discussion  with Board of Directors &nbsp;&nbsp; V1.0</div>
+      <div class="note">for Confidential discussion with Board of Directors &nbsp;&nbsp; V1.0</div>
     </div>
   </div>
 </body>
-</html>`;
+</html>
+`;
 
   let browser;
   try {
