@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const ROLES = ["superadmin", "admin", "user"];
-const STATUS = ["active", "inactive", "terminated", "on_leave"];
+const STATUS = ["active", "inactive", "vacant", "on_leave"];
 
 const userSchema = new mongoose.Schema(
   {

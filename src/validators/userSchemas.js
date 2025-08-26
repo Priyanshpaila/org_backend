@@ -10,7 +10,7 @@ export const CreateUserSchema = z.object({
   designation: z.string().optional(),
   division: z.string().optional(),
   dateOfJoining: z.string().or(z.date()),
-  status: z.enum(["active", "inactive", "terminated", "on_leave"]).optional(),
+  status: z.enum(["active", "inactive", "vacant", "on_leave"]).optional(),
   role: z.enum(["superadmin", "admin", "user"]).optional(),
   reportingTo: z.array(z.string()).optional(),
 });
@@ -25,7 +25,7 @@ export const UpdateUserSchema = z.object({
   designation: z.string().optional(),
   division: z.string().optional(),
   dateOfJoining: z.string().or(z.date()).optional(),
-  status: z.enum(["active", "inactive", "terminated", "on_leave"]).optional(),
+  status: z.enum(["active", "inactive", "vacant", "on_leave"]).optional(),
   role: z.enum(["superadmin", "admin", "user"]).optional(),
   reportingTo: z.array(z.string()).optional(),
   isDeleted: z.boolean().optional(),
