@@ -123,7 +123,7 @@ export async function generateSnapshotPDF(doc) {
     font-weight: 600;
   }
 
-  .signatures { display:flex; justify-content:space-between; gap: 16px; padding: 10px 10px 8px; }
+  .signatures { display:flex; justify-content:space-between; gap: 16px; padding: 10px 10px 8px; margin-top: 97px; }
   .sig-box {
     flex:1; height: 60px; border:1px solid var(--border); background:#fafafa;
     display:flex; align-items:center; justify-content:center;
@@ -278,7 +278,7 @@ export async function generateSnapshotPDF(doc) {
       landscape: true,
       printBackground: true,
       margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' },
-      scale: 0.92, 
+      scale: 0.94, 
     });
     return pdf;
   } finally {
