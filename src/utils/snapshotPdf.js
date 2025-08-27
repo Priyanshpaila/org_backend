@@ -90,12 +90,12 @@ export async function generateSnapshotPDF(doc) {
 
   /* Center: left logo */
   .center-badge { display:flex; align-items:center; justify-content:center; }
-  .center-badge img { max-height:58px; max-width:240px; object-fit:contain; }
+  .center-badge img { max-height:60px; max-width:240px; object-fit:contain; }
   .center-badge strong { font-size:22px; font-weight:700; color:#fff; letter-spacing:.4px; }
 
   /* Right: RR ISPAT / right logo */
   .right-logo { display:flex; align-items:center; }
-  .right-logo img { max-height:40px; max-width:180px; object-fit:contain; }
+  .right-logo img { max-height:45px; max-width:180px; object-fit:contain; }
 
   .title-row { padding: 8px 14px; border-bottom: 2px solid var(--navy); background:var(--title-bg); }
   .title { font-size: 22px; font-weight: 700; color:var(--navy); letter-spacing:.2px; }
