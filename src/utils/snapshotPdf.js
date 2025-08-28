@@ -1,3 +1,4 @@
+
 // utils/snapshotPdf.js
 import puppeteer from "puppeteer";
 
@@ -115,7 +116,8 @@ export async function generateSnapshotPDF(doc) {
 
   .row-name td { height: 40px; font-weight:400; color:var(--ink); }
   .row-tall td { height: 94px; }
-  .row-taller td { height: 156px; }
+  .row-tallerr td { height: 100px; }
+  .row-taller td { height: 128px; }
 
   .r-lg td { height: 145px; }
   .r-lg th {font-weight: 400;}
@@ -193,7 +195,7 @@ export async function generateSnapshotPDF(doc) {
       <div>
         <table>
           <tr class="row-name">
-            <th>Name</th>
+            <th>Name (Mr/Ms)</th>
             <td>${doc.personName || "—"}</td>
           </tr>
           <tr>
@@ -220,8 +222,8 @@ export async function generateSnapshotPDF(doc) {
             <th>Total Exp in domain, &amp; Industry</th>
             <td>${doc.totalExperienceText || "—"}</td>
           </tr>
-          <tr>
-            <th>Previous Organization</th>
+          <tr class="row-tallerr">
+            <th>Previous Organization (max upto 3)</th>
             <td>${doc.previousOrganization || "—"}</td>
           </tr>
           <tr>
@@ -304,27 +306,40 @@ export async function generateSnapshotPDF(doc) {
 </html>
 `;
 
+ // ----- Robust launch on Alpine/Docker -----
+  const CHROME_BIN =
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    process.env.CHROME_PATH ||
+    "/usr/bin/chromium"; // alpine chromium path
+
+  const launchOpts = {
+    headless: "new",
+    executablePath: CHROME_BIN,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // /dev/shm is tiny in containers
+      "--disable-gpu",
+      "--font-render-hinting=none",
+    ],
+  };
+
   let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    browser = await puppeteer.launch(launchOpts);
     const page = await browser.newPage();
     await page.emulateMediaType("screen");
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 0 });
-
+    await page.setContent(html, { waitUntil: "load", timeout: 0 });
     const pdf = await page.pdf({
       format: "A4",
       landscape: true,
       printBackground: true,
       margin: { top: "5mm", right: "5mm", bottom: "5mm", left: "5mm" },
       scale: 0.88,
+      preferCSSPageSize: true,
     });
     return pdf;
   } finally {
-    try {
-      await browser?.close();
-    } catch {}
+    try { await browser?.close(); } catch {}
   }
 }

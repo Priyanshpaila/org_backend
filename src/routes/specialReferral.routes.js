@@ -204,6 +204,7 @@ router.get("/:id/pdf", async (req, res) => {
     res.end(pdf);
   } catch (err) {
     console.error(err);
+    console.log(err.message);
     res.status(500).json({ error: "Failed to render PDF" });
   }
 });

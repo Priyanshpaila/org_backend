@@ -11,7 +11,7 @@ import specialReferralRouter from "./routes/specialReferral.routes.js";
 const app = express();
 
 app.use(helmet());
-app.use(cors('http://192.168.13.74:8000'));
+app.use(cors({ origin: ["https://orgmatrix.rrispat.in", 'http://localhost:8080'] , credentials: true }));
 app.use(express.json());
 app.use(morgan("dev"));
 
