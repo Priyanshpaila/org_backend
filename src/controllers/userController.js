@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 export const listUsers = asyncHandler(async (req, res) => {
   const { q, status, role, department, designation, division } = req.query;
   const { skip, limit, page } = paginateParams(req);
-  const match = { isDeleted: false };
+  const match = {};
 
   if (q) {
     match.$or = [
